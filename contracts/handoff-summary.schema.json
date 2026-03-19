@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/contracts/handoff-summary.schema.json",
+  "title": "HandoffSummary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "correlation_id",
+    "conversation_id",
+    "reason",
+    "user_request_summary",
+    "collected_data",
+    "recommended_operator_action"
+  ],
+  "properties": {
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conversation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "explicit_request",
+        "low_confidence",
+        "weak_retrieval",
+        "empty_retrieval",
+        "contact_capture_failed",
+        "integration_error",
+        "clarification_limit"
+      ]
+    },
+    "user_request_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "collected_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "contact",
+        "interest",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "interest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "recommended_operator_action": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

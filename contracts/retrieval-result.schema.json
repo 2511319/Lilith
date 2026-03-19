@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/contracts/retrieval-result.schema.json",
+  "title": "RetrievalResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "correlation_id",
+    "query",
+    "knowledge_version",
+    "top_k",
+    "results",
+    "quality"
+  ],
+  "properties": {
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "query": {
+      "type": "string"
+    },
+    "knowledge_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "top_k": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "chunk_id",
+          "score",
+          "source_url",
+          "title",
+          "content"
+        ],
+        "properties": {
+          "chunk_id": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "quality": {
+      "type": "string",
+      "enum": [
+        "strong",
+        "weak",
+        "empty"
+      ]
+    }
+  }
+}

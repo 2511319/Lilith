@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/contracts/conversation-state.schema.json",
+  "title": "ConversationState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "conversation_id",
+    "current_stage",
+    "clarification_count",
+    "contact_request_count",
+    "known_slots",
+    "last_bot_action",
+    "handoff",
+    "updated_at"
+  ],
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "current_stage": {
+      "type": "string",
+      "enum": [
+        "intro",
+        "qualify",
+        "propose",
+        "cta",
+        "lead_capture",
+        "handoff",
+        "closed"
+      ]
+    },
+    "clarification_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "contact_request_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "known_slots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "contact",
+        "contact_type",
+        "interest",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "phone",
+            "email",
+            "username",
+            "handle",
+            null
+          ]
+        },
+        "interest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "last_bot_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_requested",
+        "reason"
+      ],
+      "properties": {
+        "is_requested": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

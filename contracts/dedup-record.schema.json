@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/contracts/dedup-record.schema.json",
+  "title": "DedupRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dedup_key",
+    "conversation_id",
+    "message_id",
+    "correlation_id",
+    "created_at",
+    "expires_at",
+    "status"
+  ],
+  "properties": {
+    "dedup_key": {
+      "type": "string",
+      "minLength": 3
+    },
+    "conversation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "processed",
+        "suppressed"
+      ]
+    }
+  }
+}

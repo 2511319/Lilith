@@ -1,0 +1,12 @@
+{
+  "event": "message_created",
+  "message_id": "cw-msg-9001",
+  "conversation_id": "cw-conv-1001",
+  "inbox_id": "web-inbox-01",
+  "contact_id": "cw-contact-501",
+  "channel": "web_chat",
+  "message_type": "incoming",
+  "sender_type": "customer",
+  "content": "Здравствуйте, нужна консультация по автоматизации продаж.",
+  "created_at": "2026-03-19T09:00:00Z"
+}

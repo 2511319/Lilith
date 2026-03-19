@@ -1,0 +1,16 @@
+{
+  "correlation_id": "corr-2026-03-19-0001",
+  "query": "автоматизация входящих продаж",
+  "knowledge_version": "snapshot-2026-03-19",
+  "top_k": 3,
+  "results": [
+    {
+      "chunk_id": "chunk-001",
+      "score": 0.93,
+      "source_url": "https://example.local/services/sales-automation",
+      "title": "Автоматизация входящих продаж",
+      "content": "Компания внедряет LLM-ботов для первичной квалификации лидов и передачи оператору."
+    }
+  ],
+  "quality": "strong"
+}

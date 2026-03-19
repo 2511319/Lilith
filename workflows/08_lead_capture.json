@@ -1,0 +1,72 @@
+{
+  "name": "08_lead_capture",
+  "nodes": [
+    {
+      "id": "wf08_manual_trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "wf08_set_placeholder",
+      "name": "Set Placeholder Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        260
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "name": "workflow_key",
+              "value": "08_lead_capture",
+              "type": "string"
+            },
+            {
+              "name": "phase",
+              "value": "0",
+              "type": "string"
+            },
+            {
+              "name": "placeholder_only",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "name": "next_implementation_phase",
+              "value": "8",
+              "type": "string"
+            },
+            {
+              "name": "summary",
+              "value": "Phase 0 placeholder for lead slot filling and partial progress handling.",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Placeholder Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

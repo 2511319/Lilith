@@ -1,0 +1,20 @@
+# Phase 0 Placeholder: Decision Sales JSON Mode
+
+Назначение:
+- будущий prompt для выдачи структурированного decision envelope;
+- должен быть синхронизирован с `contracts/llm-decision-envelope.schema.json`.
+
+Требования к ответу:
+- вернуть только JSON без поясняющего текста вокруг;
+- заполнить обязательные поля `correlation_id`, `answer_text`, `decision`, `next_stage`, `signals`;
+- использовать только допустимые enum-значения из схемы;
+- не выдавать поля, отсутствующие в контракте.
+
+Семантические правила:
+- `decision = handoff`, если пользователь явно просит человека или уверенность низкая;
+- `signals.has_grounding = false`, если retrieval слабый или отсутствует;
+- `signals.confidence_band` должен отражать реальную уверенность, а не оптимистичную догадку.
+
+Статус:
+- bootstrap placeholder;
+- реальная JSON-mode интеграция и валидация по схеме выполняются в Фазе 3.

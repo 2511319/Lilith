@@ -1,0 +1,2 @@
+# Phase 0 placeholder.
+# Pin ingestion dependencies only when Phase 5 contracts and pipeline steps are finalized.

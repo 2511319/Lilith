@@ -1,0 +1,11 @@
+{
+  "conversation_id": "cw-conv-1002",
+  "external_user_id": "ext-user-502",
+  "channel": "web_chat",
+  "name": null,
+  "contact": null,
+  "contact_type": null,
+  "interest": "внедрение чат-бота",
+  "description": "Пользователь описал задачу, но не оставил контакт.",
+  "source": "chatwoot:web-inbox-01"
+}

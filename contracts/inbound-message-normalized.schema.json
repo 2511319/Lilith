@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/contracts/inbound-message-normalized.schema.json",
+  "title": "InboundMessageNormalized",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_type",
+    "correlation_id",
+    "channel",
+    "inbox_id",
+    "conversation_id",
+    "message_id",
+    "external_user_id",
+    "sender_type",
+    "text",
+    "received_at",
+    "metadata"
+  ],
+  "properties": {
+    "event_type": {
+      "const": "inbound_message"
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "channel": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inbox_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conversation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "external_user_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sender_type": {
+      "type": "string",
+      "enum": [
+        "customer"
+      ]
+    },
+    "text": {
+      "type": "string"
+    },
+    "raw_language_hint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chatwoot_contact_id",
+        "chatwoot_message_type"
+      ],
+      "properties": {
+        "chatwoot_contact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "chatwoot_message_type": {
+          "type": "string",
+          "enum": [
+            "incoming"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/contracts/lead-target-api-response.schema.json",
+  "title": "LeadTargetApiResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "lead_id",
+    "existing_lead_id",
+    "message"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "created",
+        "duplicate",
+        "failed"
+      ]
+    },
+    "lead_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "existing_lead_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "message": {
+      "type": "string"
+    }
+  }
+}

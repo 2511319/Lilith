@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/contracts/llm-decision-envelope.schema.json",
+  "title": "LlmDecisionEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "correlation_id",
+    "answer_text",
+    "decision",
+    "next_stage",
+    "signals"
+  ],
+  "properties": {
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "answer_text": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "reply",
+        "handoff",
+        "lead_capture",
+        "close"
+      ]
+    },
+    "next_stage": {
+      "type": "string",
+      "enum": [
+        "intro",
+        "qualify",
+        "propose",
+        "cta",
+        "lead_capture",
+        "handoff",
+        "closed"
+      ]
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "needs_handoff",
+        "needs_contact",
+        "has_grounding",
+        "confidence_band"
+      ],
+      "properties": {
+        "needs_handoff": {
+          "type": "boolean"
+        },
+        "needs_contact": {
+          "type": "boolean"
+        },
+        "has_grounding": {
+          "type": "boolean"
+        },
+        "confidence_band": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    }
+  }
+}
