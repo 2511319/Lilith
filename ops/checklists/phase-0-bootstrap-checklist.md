@@ -36,6 +36,6 @@
 
 ## SPEC_GAP
 
-- `master-spec.md` в разделе repo skeleton использует имена contract-файлов в стиле `inbound_message.normalized.schema.json` / `dedup_record.schema.json`, тогда как `docs/11-contracts-overview.md`, `spec-pack-manifest.json` и фактические файлы репозитория используют hyphenated имена.
+- `master-spec.md` в разделе repo skeleton использует имена contract-файлов в стиле `inbound_message.normalized.schema.json` / `dedup_record.schema.json`, тогда как `docs/11-contracts-overview.md`, `docs/legacy-quarantine/spec-pack-manifest.json` и фактические файлы репозитория используют hyphenated имена.
 - В Фазе 0 сохранено фактическое текущее именование, чтобы не разорвать уже существующий spec-pack.
 - Перед массовым переименованием нужна отдельная фиксация канонического варианта в master-spec.

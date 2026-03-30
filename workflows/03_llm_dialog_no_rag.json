@@ -1,72 +1,634 @@
 {
-  "name": "03_llm_dialog_no_rag",
+  "name": "Lilith DEV - 03 LLM Without RAG",
   "nodes": [
     {
-      "id": "wf03_manual_trigger",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
+      "id": "wf03_execute_workflow_trigger",
+      "name": "Triggered by Parent Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
       "position": [
-        260,
-        260
+        220,
+        300
       ],
-      "parameters": {}
+      "parameters": {
+        "inputSource": "passthrough"
+      }
     },
     {
-      "id": "wf03_set_placeholder",
-      "name": "Set Placeholder Metadata",
+      "id": "wf03_set_normalize_request",
+      "name": "Normalize LLM Request",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        540,
-        260
+        420,
+        300
       ],
       "parameters": {
         "mode": "manual",
+        "includeOtherFields": false,
         "assignments": {
           "assignments": [
             {
-              "name": "workflow_key",
-              "value": "03_llm_dialog_no_rag",
+              "name": "correlation_id",
+              "value": "={{ String($json.correlation_id || $json.body?.correlation_id || $json.body?.normalized_inbound?.correlation_id || '') }}",
               "type": "string"
             },
             {
-              "name": "phase",
-              "value": "0",
+              "name": "text",
+              "value": "={{ String($json.text || $json.body?.text || $json.body?.normalized_inbound?.text || '') }}",
               "type": "string"
             },
             {
-              "name": "placeholder_only",
-              "value": true,
-              "type": "boolean"
-            },
-            {
-              "name": "next_implementation_phase",
-              "value": "3",
+              "name": "channel",
+              "value": "={{ String($json.channel || $json.body?.channel || $json.body?.normalized_inbound?.channel || 'web_chat') }}",
               "type": "string"
             },
             {
-              "name": "summary",
-              "value": "Phase 0 placeholder for LLM dialog without RAG.",
+              "name": "raw_language_hint",
+              "value": "={{ String($json.raw_language_hint || $json.body?.raw_language_hint || $json.body?.normalized_inbound?.raw_language_hint || 'ru') }}",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id",
+              "value": "={{ String($json.conversation_id || $json.body?.conversation_id || $json.body?.normalized_inbound?.conversation_id || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "llm_model",
+              "value": "={{ String($json.llm_model || $json.body?.llm_model || 'ollama-public/qwen3.5:9b-no-think') }}",
               "type": "string"
             }
           ]
         }
       }
+    },
+    {
+      "id": "wf03_if_validate_request",
+      "name": "Validate LLM Request",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        620,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "wf03_cond_correlation_id",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.correlation_id }}",
+              "rightValue": ""
+            },
+            {
+              "id": "wf03_cond_text",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.text }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wf03_set_prepare_llm_context",
+      "name": "Prepare LLM Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        820,
+        240
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "system_prompt",
+              "value": "# Phase 3 Baseline: System Sales RU\n\nРоль:\n- ты первичный sales-консультант компании DBI.\n\nЦель:\n- понять пользовательский запрос;\n- дать краткий полезный ответ;\n- продвинуть разговор к следующему шагу: уточнение, предложение, CTA или handoff.\n\nИнварианты:\n- отвечай только на русском языке;\n- сохраняй деловой, спокойный и вежливый тон;\n- не выдумывай услуги, цены, сроки, гарантии, кейсы, интеграции и факты;\n- если оснований мало, честно ограничивай ответ;\n- если пользователь явно просит человека, вопрос вне компетенции или уверенность низкая, допускай handoff;\n- не спорь с пользователем и не маскируй неопределённость уверенным тоном;\n- не превращай ответ в длинный монолог без пользы.\n\nОграничения Phase 3:\n- retrieval и grounding сейчас отсутствуют;\n- не делай вид, что проверял сайт, базу знаний, CRM или внутренние системы;\n- `signals.has_grounding` на этой фазе должен быть `false`;\n- не обещай точных условий без подтверждения.\n\nКритерий хорошего ответа:\n- 1-4 предложения;\n- есть практическая польза;\n- разговор движется вперёд.",
+              "type": "string"
+            },
+            {
+              "name": "decision_prompt",
+              "value": "# Phase 3 Baseline: Decision Sales JSON Mode\n\nВерни только JSON строго по контракту `llm-decision-envelope`.\n\nПоля:\n- `correlation_id`: возьми из входа без изменений;\n- `answer_text`: пользовательский ответ на русском языке;\n- `decision`: одно из `reply | handoff | lead_capture | close`;\n- `next_stage`: одно из `intro | qualify | propose | cta | lead_capture | handoff | closed`;\n- `signals.needs_handoff`: `true`, если нужен человек или уверенность низкая;\n- `signals.needs_contact`: `true`, если уместно попросить контакт или предложить связаться;\n- `signals.has_grounding`: всегда `false` на этой фазе;\n- `signals.confidence_band`: одно из `low | medium | high`.\n\nПравила:\n- только JSON, без markdown и поясняющего текста;\n- не добавляй лишних полей;\n- `answer_text` не должен быть пустым;\n- если данных недостаточно, дай честный ограниченный ответ и переведи решение в `handoff` либо в безопасное `reply` с уточнением;\n- если пользователь явно просит оператора, используй `decision = handoff` и `next_stage = handoff`;\n- если пользователь готов обсуждать следующий шаг или просит расчёт/связь, допускай `signals.needs_contact = true`;\n- `correlation_id` верни ровно как во входе.",
+              "type": "string"
+            },
+            {
+              "name": "fallback_policy",
+              "value": "# Phase 3 Baseline: No Answer Policy\n\nПрименяй эту политику, если:\n- модель не может дать надёжный ответ;\n- интеграция модели вернула ошибку;\n- уверенность низкая;\n- вопрос требует человека.\n\nВ таком случае:\n- не выдумывай детали;\n- коротко скажи об ограничении;\n- предложи безопасный следующий шаг: уточнение или передача специалисту;\n- сохраняй RU-only и деловой тон.\n\nРекомендуемый fallback-ответ:\n\"Сейчас могу помочь только с общим ориентиром. Чтобы не вводить вас в заблуждение, лучше передать запрос специалисту или уточнить задачу в одном сообщении.\"\n\nРекомендуемое решение:\n- `decision = handoff`\n- `next_stage = handoff`\n- `signals.needs_handoff = true`\n- `signals.needs_contact = true`\n- `signals.has_grounding = false`\n- `signals.confidence_band = low`",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf03_set_prepare_input_fallback",
+      "name": "Build Input Fallback Envelope",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        820,
+        420
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "correlation_id",
+              "value": "={{ $json.correlation_id || 'missing-correlation-id' }}",
+              "type": "string"
+            },
+            {
+              "name": "answer_text",
+              "value": "Сейчас могу помочь только с общим ориентиром. Чтобы не вводить вас в заблуждение, лучше передать запрос специалисту или уточнить задачу в одном сообщении.",
+              "type": "string"
+            },
+            {
+              "name": "decision",
+              "value": "handoff",
+              "type": "string"
+            },
+            {
+              "name": "next_stage",
+              "value": "handoff",
+              "type": "string"
+            },
+            {
+              "name": "signals.needs_handoff",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "name": "signals.needs_contact",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "name": "signals.has_grounding",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "name": "signals.confidence_band",
+              "value": "low",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      }
+    },
+    {
+      "id": "wf03_chain_llm",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1080,
+        240
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "promptType": "define",
+        "text": "=Собери decision envelope для sales-бота без RAG.\n\nВход:\n{{ JSON.stringify({\n  correlation_id: $json.correlation_id,\n  text: $json.text,\n  channel: $json.channel,\n  raw_language_hint: $json.raw_language_hint,\n  conversation_id: $json.conversation_id\n}, null, 2) }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "={{ $json.system_prompt + '\\n\\n' + $json.decision_prompt + '\\n\\n' + $json.fallback_policy }}"
+            }
+          ]
+        },
+        "batching": {}
+      }
+    },
+    {
+      "id": "wf03_lm_openai",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1080,
+        480
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "={{ $('Normalize LLM Request').first().json.llm_model }}"
+        },
+        "options": {
+          "timeout": 15000,
+          "maxRetries": 1
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "gTajZLEOzDTGKi2q",
+          "name": "Corp LLM (ai.dbi.ru)"
+        }
+      }
+    },
+    {
+      "id": "wf03_parser_autofix",
+      "name": "Auto-fixing Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        480
+      ],
+      "parameters": {
+        "options": {
+          "prompt": "Instructions:\n--------------\n{instructions}\n--------------\nCompletion:\n--------------\n{completion}\n--------------\n\nAbove, the Completion did not satisfy the constraints given in the Instructions.\nError:\n--------------\n{error}\n--------------\n\nPlease try again and return only valid JSON that satisfies the required structure."
+        }
+      }
+    },
+    {
+      "id": "wf03_parser_structured",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1480,
+        480
+      ],
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"correlation_id\": \"cw-1-4-224\",\n  \"answer_text\": \"Здравствуйте. Помогу сориентироваться по запросу и, если потребуется, передам диалог специалисту.\",\n  \"decision\": \"reply\",\n  \"next_stage\": \"qualify\",\n  \"signals\": {\n    \"needs_handoff\": false,\n    \"needs_contact\": false,\n    \"has_grounding\": false,\n    \"confidence_band\": \"medium\"\n  }\n}"
+      }
+    },
+    {
+      "id": "wf03_lm_openai_parser_fixer",
+      "name": "OpenAI Chat Model • Parser Fixer",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        700
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "={{ $('Normalize LLM Request').first().json.llm_model }}"
+        },
+        "options": {
+          "timeout": 15000,
+          "maxRetries": 1
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "gTajZLEOzDTGKi2q",
+          "name": "Corp LLM (ai.dbi.ru)"
+        }
+      }
+    },
+    {
+      "id": "wf03_set_normalize_llm_result",
+      "name": "Normalize LLM Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1300,
+        240
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "correlation_id",
+              "value": "={{ $('Normalize LLM Request').first().json.correlation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "answer_text",
+              "value": "={{ String($json.output?.answer_text || $json.answer_text || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "decision",
+              "value": "={{ String($json.output?.decision || $json.decision || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "next_stage",
+              "value": "={{ String($json.output?.next_stage || $json.next_stage || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "signals.needs_handoff",
+              "value": "={{ Boolean($json.output?.signals?.needs_handoff ?? $json.signals?.needs_handoff ?? false) }}",
+              "type": "boolean"
+            },
+            {
+              "name": "signals.needs_contact",
+              "value": "={{ Boolean($json.output?.signals?.needs_contact ?? $json.signals?.needs_contact ?? false) }}",
+              "type": "boolean"
+            },
+            {
+              "name": "signals.has_grounding",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "name": "signals.confidence_band",
+              "value": "={{ String($json.output?.signals?.confidence_band || $json.signals?.confidence_band || '') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      }
+    },
+    {
+      "id": "wf03_if_llm_result_present",
+      "name": "Decision Envelope Present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "wf03_cond_answer_text_present",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.answer_text }}",
+              "rightValue": ""
+            },
+            {
+              "id": "wf03_cond_decision_present",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": ""
+            },
+            {
+              "id": "wf03_cond_next_stage_present",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.next_stage }}",
+              "rightValue": ""
+            },
+            {
+              "id": "wf03_cond_confidence_present",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.signals.confidence_band }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wf03_set_build_fallback_envelope",
+      "name": "Build Fallback Envelope",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        360
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "correlation_id",
+              "value": "={{ $('Normalize LLM Request').first().json.correlation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "answer_text",
+              "value": "Сейчас могу помочь только с общим ориентиром. Чтобы не вводить вас в заблуждение, лучше передать запрос специалисту или уточнить задачу в одном сообщении.",
+              "type": "string"
+            },
+            {
+              "name": "decision",
+              "value": "handoff",
+              "type": "string"
+            },
+            {
+              "name": "next_stage",
+              "value": "handoff",
+              "type": "string"
+            },
+            {
+              "name": "signals.needs_handoff",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "name": "signals.needs_contact",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "name": "signals.has_grounding",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "name": "signals.confidence_band",
+              "value": "low",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      }
     }
   ],
   "connections": {
-    "Manual Trigger": {
+    "Triggered by Parent Workflow": {
       "main": [
         [
           {
-            "node": "Set Placeholder Metadata",
+            "node": "Normalize LLM Request",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize LLM Request": {
+      "main": [
+        [
+          {
+            "node": "Validate LLM Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate LLM Request": {
+      "main": [
+        [
+          {
+            "node": "Prepare LLM Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Input Fallback Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare LLM Context": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Normalize LLM Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize LLM Result": {
+      "main": [
+        [
+          {
+            "node": "Decision Envelope Present",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Envelope Present": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Build Fallback Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model • Parser Fixer": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     }
   },
-  "settings": {}
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
 }

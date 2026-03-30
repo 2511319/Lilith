@@ -1,0 +1,12 @@
+{
+  "correlation_id": "cw-1-4-224",
+  "answer_text": "Здравствуйте. Можем начать с короткого уточнения ваших задач и текущего процесса продаж, чтобы предложить подходящий следующий шаг.",
+  "decision": "reply",
+  "next_stage": "qualify",
+  "signals": {
+    "needs_handoff": false,
+    "needs_contact": false,
+    "has_grounding": false,
+    "confidence_band": "medium"
+  }
+}

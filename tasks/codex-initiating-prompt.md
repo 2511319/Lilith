@@ -20,6 +20,17 @@
 2. Протестировать
 3. Отчитаться
 
+Правило stop-after-2-failed-assumptions:
+- если две подряд гипотезы о причине проблемы не подтверждаются, останови повторение того же типа действий;
+- перечисли уже опровергнутые предположения;
+- назови один следующий изоляционный эксперимент, который уменьшит неопределённость;
+- не делай новые похожие изменения, пока этот эксперимент не проведён.
+
+Правило внешних интеграций:
+- сначала докажи raw upstream payload через capture или replay;
+- только потом кодируй normalization и business behavior;
+- illustrative samples не считаются достаточным доказательством контракта.
+
 Жёсткие инварианты:
 - не использовать `Code` / `Function` / `Function Item` и их аналоги в n8n (допустимы стандартные функциональные ноды библиотеки n8n);
 - не прятать бизнес-логику в expressions, raw-конфигах и inline-JS;
@@ -33,7 +44,7 @@ Chatwoot → n8n → guardrails → retrieval/context → LLM → reply / handof
 CRM пишется не напрямую, а через Lead Target API.
 
 Что сделать сейчас:
-1. Прочитай `master-spec.md`, `AGENTS.md`, `docs/10-repo-skeleton.md`, `docs/11-contracts-overview.md`, `docs/12-implementation-plan.md`, `tasks/codex-bootstrap.md`, `tasks/phase-backlog.md`.
+1. Прочитай `master-spec.md`, `AGENTS.md`, `docs/11-contracts-overview.md`, `docs/legacy-quarantine/10-repo-skeleton.md`, `docs/legacy-quarantine/12-implementation-plan.md`, `tasks/codex-bootstrap.md`, `tasks/phase-backlog.md`.
 2. Сформируй краткий execution plan только для Фазы 0 — Bootstrap.
 3. Отдельно оцени, нужны ли repo-local `.codex/` overrides или project-specific subagents сверх уже существующей глобальной конфигурации. Если не нужны — зафиксируй это и не создавай лишнего.
 4. Выполни только Фазу 0 без перехода к Фазе 1.

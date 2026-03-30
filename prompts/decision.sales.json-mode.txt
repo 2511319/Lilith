@@ -1,20 +1,22 @@
-# Phase 0 Placeholder: Decision Sales JSON Mode
+# Phase 3 Baseline: Decision Sales JSON Mode
 
-Назначение:
-- будущий prompt для выдачи структурированного decision envelope;
-- должен быть синхронизирован с `contracts/llm-decision-envelope.schema.json`.
+Верни только JSON строго по контракту `llm-decision-envelope`.
 
-Требования к ответу:
-- вернуть только JSON без поясняющего текста вокруг;
-- заполнить обязательные поля `correlation_id`, `answer_text`, `decision`, `next_stage`, `signals`;
-- использовать только допустимые enum-значения из схемы;
-- не выдавать поля, отсутствующие в контракте.
+Поля:
+- `correlation_id`: возьми из входа без изменений;
+- `answer_text`: пользовательский ответ на русском языке;
+- `decision`: одно из `reply | handoff | lead_capture | close`;
+- `next_stage`: одно из `intro | qualify | propose | cta | lead_capture | handoff | closed`;
+- `signals.needs_handoff`: `true`, если нужен человек или уверенность низкая;
+- `signals.needs_contact`: `true`, если уместно попросить контакт или предложить связаться;
+- `signals.has_grounding`: всегда `false` на этой фазе;
+- `signals.confidence_band`: одно из `low | medium | high`.
 
-Семантические правила:
-- `decision = handoff`, если пользователь явно просит человека или уверенность низкая;
-- `signals.has_grounding = false`, если retrieval слабый или отсутствует;
-- `signals.confidence_band` должен отражать реальную уверенность, а не оптимистичную догадку.
-
-Статус:
-- bootstrap placeholder;
-- реальная JSON-mode интеграция и валидация по схеме выполняются в Фазе 3.
+Правила:
+- только JSON, без markdown и поясняющего текста;
+- не добавляй лишних полей;
+- `answer_text` не должен быть пустым;
+- если данных недостаточно, дай честный ограниченный ответ и переведи решение в `handoff` либо в безопасное `reply` с уточнением;
+- если пользователь явно просит оператора, используй `decision = handoff` и `next_stage = handoff`;
+- если пользователь готов обсуждать следующий шаг или просит расчёт/связь, допускай `signals.needs_contact = true`;
+- `correlation_id` верни ровно как во входе.

@@ -1,0 +1,12 @@
+{
+  "correlation_id": "cw-1-4-224",
+  "answer_text": "Сейчас могу помочь только с общим ориентиром. Чтобы не вводить вас в заблуждение, лучше передать запрос специалисту или уточнить задачу в одном сообщении.",
+  "decision": "handoff",
+  "next_stage": "handoff",
+  "signals": {
+    "needs_handoff": true,
+    "needs_contact": true,
+    "has_grounding": false,
+    "confidence_band": "low"
+  }
+}

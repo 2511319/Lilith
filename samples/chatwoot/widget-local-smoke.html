@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lilith DEV Widget Smoke</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #11161c;
+        color: #eef2f6;
+        font: 16px/1.5 "Segoe UI", sans-serif;
+      }
+
+      main {
+        max-width: 640px;
+        padding: 24px;
+      }
+
+      code {
+        color: #9ae6b4;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Lilith DEV Chatwoot Widget</h1>
+      <p>
+        Открой эту страницу через локальный HTTP server, вставь свой
+        <code>websiteToken</code> ниже и отправь сообщение в bubble виджета.
+      </p>
+      <p>
+        Если в Chatwoot включены разрешённые домены, добавь туда
+        <code>localhost</code> или домен, с которого будешь открывать страницу.
+      </p>
+    </main>
+
+    <script>
+      (function (d, t) {
+        var BASE_URL = "https://dev-chatwoot.dbi.ru";
+        var WEBSITE_TOKEN = "qdLS6UbXSBm66tFyPSbGRxWz";
+        var g = d.createElement(t);
+        var s = d.getElementsByTagName(t)[0];
+
+        g.src = BASE_URL + "/packs/js/sdk.js";
+        g.async = true;
+        g.defer = true;
+        s.parentNode.insertBefore(g, s);
+
+        g.onload = function () {
+          window.chatwootSDK.run({
+            websiteToken: WEBSITE_TOKEN,
+            baseUrl: BASE_URL,
+          });
+        };
+      })(document, "script");
+
+      window.addEventListener("chatwoot:ready", function () {
+        if (window.$chatwoot) {
+          window.$chatwoot.toggle("open");
+        }
+      });
+    </script>
+  </body>
+</html>

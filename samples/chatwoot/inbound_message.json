@@ -1,12 +1,82 @@
 {
   "event": "message_created",
-  "message_id": "cw-msg-9001",
-  "conversation_id": "cw-conv-1001",
-  "inbox_id": "web-inbox-01",
-  "contact_id": "cw-contact-501",
-  "channel": "web_chat",
+  "id": 218,
+  "content": "<p>RAW CAPTURE LIVE 2026-03-19 22:53 MSK</p>\n",
+  "created_at": "2026-03-19T19:53:13.475Z",
   "message_type": "incoming",
-  "sender_type": "customer",
-  "content": "Здравствуйте, нужна консультация по автоматизации продаж.",
-  "created_at": "2026-03-19T09:00:00Z"
+  "content_type": "text",
+  "content_attributes": {
+    "in_reply_to": null
+  },
+  "source_id": null,
+  "private": false,
+  "sender": {
+    "id": 5,
+    "name": "long-brook-925"
+  },
+  "conversation": {
+    "id": 4,
+    "channel": "Channel::WebWidget",
+    "inbox_id": 1,
+    "status": "open",
+    "contact_inbox": {
+      "id": 4,
+      "contact_id": 5,
+      "inbox_id": 1,
+      "source_id": "e5a742e3-1f41-4daa-8299-2ed328e8b5dc",
+      "created_at": "2026-03-19T17:07:28.400Z",
+      "updated_at": "2026-03-19T17:07:28.400Z",
+      "hmac_verified": false,
+      "pubsub_token": "REDACTED_CAPTURE_TOKEN"
+    },
+    "additional_attributes": {
+      "referer": "http://127.0.0.1:8088/",
+      "browser_language": "ru",
+      "browser": {
+        "device_name": "Unknown",
+        "browser_name": "Chrome",
+        "platform_name": "Windows",
+        "browser_version": "145.0.0.0",
+        "platform_version": "10.0"
+      }
+    },
+    "messages": [
+      {
+        "id": 218,
+        "content": "RAW CAPTURE LIVE 2026-03-19 22:53 MSK",
+        "conversation_id": 4,
+        "message_type": 0,
+        "created_at": 1773949993,
+        "private": false,
+        "status": "sent",
+        "source_id": null,
+        "content_type": "text",
+        "content_attributes": {
+          "in_reply_to": null
+        },
+        "processed_message_content": "RAW CAPTURE LIVE 2026-03-19 22:53 MSK",
+        "sender": {
+          "id": 5,
+          "name": "long-brook-925",
+          "type": "contact"
+        }
+      }
+    ],
+    "meta": {
+      "sender": {
+        "id": 5,
+        "name": "long-brook-925",
+        "type": "contact"
+      },
+      "hmac_verified": false
+    }
+  },
+  "inbox": {
+    "id": 1,
+    "name": "DBI"
+  },
+  "account": {
+    "id": 1,
+    "name": "DBI"
+  }
 }

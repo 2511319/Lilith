@@ -1,53 +1,859 @@
 {
-  "name": "01_inbound_echo",
+  "name": "Lilith DEV - 01 Inbound Echo",
   "nodes": [
     {
-      "id": "wf01_manual_trigger",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
+      "id": "wf01_chatwoot_webhook",
+      "name": "Chatwoot Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
       "position": [
-        260,
-        260
+        220,
+        300
       ],
-      "parameters": {}
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dev/chatwoot/inbound-echo",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "d3a4f0d7-e110-46a4-8b06-4e61899e5c5a"
     },
     {
-      "id": "wf01_set_placeholder",
-      "name": "Set Placeholder Metadata",
+      "id": "wf01_if_allow_customer_inbound_only",
+      "name": "Allow Customer Inbound Only",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        360,
+        300
+      ],
+      "parameters": {
+        "options": {},
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "wf01_cond_message_type_incoming",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ ['0', 'incoming'].includes(String($json.body.message_type ?? '').toLowerCase()) ? 'incoming' : String($json.body.message_type ?? '').toLowerCase() }}",
+              "rightValue": "incoming"
+            },
+            {
+              "id": "wf01_cond_sender_contact",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ String($json.body.sender?.type || $json.body.conversation?.meta?.sender?.type || $json.body.conversation?.messages?.[0]?.sender?.type || '').toLowerCase() }}",
+              "rightValue": "contact"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_set_normalized_inbound",
+      "name": "Normalize Inbound Event",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        540,
-        260
+        520,
+        300
       ],
       "parameters": {
         "mode": "manual",
+        "includeOtherFields": false,
         "assignments": {
           "assignments": [
             {
-              "name": "workflow_key",
-              "value": "01_inbound_echo",
+              "name": "event_type",
+              "value": "inbound_message",
               "type": "string"
             },
             {
-              "name": "phase",
-              "value": "0",
+              "name": "correlation_id",
+              "value": "={{ 'cw-' + String($json.body.account.id) + '-' + String($json.body.conversation.id) + '-' + String($json.body.id) }}",
               "type": "string"
             },
             {
-              "name": "placeholder_only",
-              "value": true,
+              "name": "channel",
+              "value": "={{ $json.body.conversation.channel === 'Channel::WebWidget' ? 'web_chat' : String($json.body.conversation.channel) }}",
+              "type": "string"
+            },
+            {
+              "name": "inbox_id",
+              "value": "={{ String($json.body.conversation?.inbox_id || $json.body.inbox?.id || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id",
+              "value": "={{ String($json.body.conversation.id) }}",
+              "type": "string"
+            },
+            {
+              "name": "message_id",
+              "value": "={{ String($json.body.id) }}",
+              "type": "string"
+            },
+            {
+              "name": "external_user_id",
+              "value": "={{ String($json.body.conversation?.contact_inbox?.source_id || $json.body.sender?.id || $json.body.conversation?.meta?.sender?.id || $json.body.conversation?.messages?.[0]?.sender?.id || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "sender_type",
+              "value": "customer",
+              "type": "string"
+            },
+            {
+              "name": "text",
+              "value": "={{ String($json.body.conversation?.messages?.[0]?.processed_message_content ?? $json.body.content ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "raw_language_hint",
+              "value": "={{ String($json.body.contact?.additional_attributes?.browser_language || $json.body.conversation?.additional_attributes?.browser_language || 'ru') }}",
+              "type": "string"
+            },
+            {
+              "name": "received_at",
+              "value": "={{ typeof $json.body.created_at === 'number' ? new Date(Number($json.body.created_at) * 1000).toISOString() : new Date($json.body.created_at).toISOString() }}",
+              "type": "string"
+            },
+            {
+              "name": "metadata.chatwoot_contact_id",
+              "value": "={{ String($json.body.sender?.id || $json.body.conversation?.meta?.sender?.id || $json.body.conversation?.messages?.[0]?.sender?.id || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "metadata.chatwoot_message_type",
+              "value": "incoming",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      }
+    },
+    {
+      "id": "wf01_set_prepare_dedup_context",
+      "name": "Prepare Dedup Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "dedup_key",
+              "value": "={{ 'cw:' + String($('Chatwoot Inbound Webhook').item.json.body.account.id) + ':' + $json.conversation_id + ':' + $json.message_id }}",
+              "type": "string"
+            },
+            {
+              "name": "dedup_created_at",
+              "value": "={{ $json.received_at }}",
+              "type": "string"
+            },
+            {
+              "name": "dedup_expires_at",
+              "value": "={{ new Date(new Date($json.received_at).getTime() + 86400000).toISOString() }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_datatable_if_row_exists",
+      "name": "If Dedup Record Exists",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        180
+      ],
+      "parameters": {
+        "operation": "rowExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "IWxUMSumwaGN44Ez",
+          "mode": "list",
+          "cachedResultName": "lilith_dev_dedup_records",
+          "cachedResultUrl": "/projects/rVyGIkutJPcwQNXp/datatables/IWxUMSumwaGN44Ez"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "dedup_key",
+              "keyValue": "={{ $json.dedup_key }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_datatable_if_row_not_exists",
+      "name": "If Dedup Record Does Not Exist",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        420
+      ],
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "IWxUMSumwaGN44Ez",
+          "mode": "list",
+          "cachedResultName": "lilith_dev_dedup_records",
+          "cachedResultUrl": "/projects/rVyGIkutJPcwQNXp/datatables/IWxUMSumwaGN44Ez"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "dedup_key",
+              "keyValue": "={{ $json.dedup_key }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_set_prepare_duplicate_suppress_record",
+      "name": "Prepare Duplicate Suppress Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        180
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "dedup_record_status",
+              "value": "suppressed",
+              "type": "string"
+            },
+            {
+              "name": "suppress_reason",
+              "value": "duplicate_delivery",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_datatable_insert_duplicate_suppress_record",
+      "name": "Insert Duplicate Suppress Record",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        180
+      ],
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "IWxUMSumwaGN44Ez",
+          "mode": "list",
+          "cachedResultName": "lilith_dev_dedup_records",
+          "cachedResultUrl": "/projects/rVyGIkutJPcwQNXp/datatables/IWxUMSumwaGN44Ez"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "dedup_key": "={{ $json.dedup_key }}",
+            "conversation_id": "={{ $json.conversation_id }}",
+            "message_id": "={{ $json.message_id }}",
+            "correlation_id": "={{ $json.correlation_id }}",
+            "created_at": "={{ $json.dedup_created_at }}",
+            "expires_at": "={{ $json.dedup_expires_at }}",
+            "status": "={{ $json.dedup_record_status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "dedup_key",
+              "displayName": "dedup_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "correlation_id",
+              "displayName": "correlation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "expires_at",
+              "displayName": "expires_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wf01_set_build_duplicate_suppress_trace",
+      "name": "Build Duplicate Suppress Trace",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1380,
+        180
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "correlation_id",
+              "value": "={{ $json.correlation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id",
+              "value": "={{ $json.conversation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "inbound_message_id",
+              "value": "={{ $json.message_id }}",
+              "type": "string"
+            },
+            {
+              "name": "suppress_reason",
+              "value": "duplicate_delivery",
+              "type": "string"
+            },
+            {
+              "name": "suppress_source",
+              "value": "dedup",
+              "type": "string"
+            },
+            {
+              "name": "dedup_key",
+              "value": "={{ $json.dedup_key }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_set_prepare_processed_dedup_record",
+      "name": "Prepare Processed Dedup Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        420
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "dedup_record_status",
+              "value": "processed",
+              "type": "string"
+            },
+            {
+              "name": "suppress_reason",
+              "value": "customer_inbound",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_datatable_insert_processed_dedup_record",
+      "name": "Insert Processed Dedup Record",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        420
+      ],
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "IWxUMSumwaGN44Ez",
+          "mode": "list",
+          "cachedResultName": "lilith_dev_dedup_records",
+          "cachedResultUrl": "/projects/rVyGIkutJPcwQNXp/datatables/IWxUMSumwaGN44Ez"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "dedup_key": "={{ $json.dedup_key }}",
+            "conversation_id": "={{ $json.conversation_id }}",
+            "message_id": "={{ $json.message_id }}",
+            "correlation_id": "={{ $json.correlation_id }}",
+            "created_at": "={{ $json.dedup_created_at }}",
+            "expires_at": "={{ $json.dedup_expires_at }}",
+            "status": "={{ $json.dedup_record_status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "dedup_key",
+              "displayName": "dedup_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "correlation_id",
+              "displayName": "correlation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "expires_at",
+              "displayName": "expires_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wf01_set_prepare_llm_input",
+      "name": "Prepare Phase 3 Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        420
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "correlation_id",
+              "value": "={{ $('Prepare Dedup Context').item.json.correlation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "text",
+              "value": "={{ $('Prepare Dedup Context').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "name": "channel",
+              "value": "={{ $('Prepare Dedup Context').item.json.channel }}",
+              "type": "string"
+            },
+            {
+              "name": "raw_language_hint",
+              "value": "={{ $('Prepare Dedup Context').item.json.raw_language_hint }}",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id",
+              "value": "={{ $('Prepare Dedup Context').item.json.conversation_id }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_execute_llm_subworkflow",
+      "name": "Execute Phase 3 LLM Subworkflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        840,
+        300
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gViChIh0yTY6zclR"
+        },
+        "mode": "each",
+        "options": {}
+      }
+    },
+    {
+      "id": "wf01_set_prepare_llm_reply",
+      "name": "Prepare Phase 3 Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "reply_content",
+              "value": "={{ String($json.answer_text || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id",
+              "value": "={{ $('Prepare Phase 3 Input').item.json.conversation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_decision",
+              "value": "={{ String($json.decision || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_next_stage",
+              "value": "={{ String($json.next_stage || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_message_type",
+              "value": "outgoing",
+              "type": "string"
+            },
+            {
+              "name": "reply_private",
+              "value": false,
               "type": "boolean"
             },
             {
-              "name": "next_implementation_phase",
-              "value": "1",
+              "name": "reply_content_type",
+              "value": "text",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_set_prepare_chatwoot_request_context",
+      "name": "Prepare Chatwoot Request Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1160,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "chatwoot_base_url",
+              "value": "https://dev-chatwoot.dbi.ru",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_http_publish_reply",
+      "name": "Publish Reply to Chatwoot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "alwaysOutputData": true,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.chatwoot_base_url + '/api/v1/accounts/' + String($('Chatwoot Inbound Webhook').item.json.body.account.id) + '/conversations/' + $json.conversation_id + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{$json.reply_content}}\",\n  \"message_type\": \"outgoing\",\n  \"private\": false,\n  \"content_type\": \"text\",\n  \"content_attributes\": {}\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NMnQ6WT7KLRMMKic",
+          "name": "Chatwoot DEV Header Auth 371"
+        }
+      }
+    },
+    {
+      "id": "wf01_set_build_sender_suppress_trace",
+      "name": "Build Sender Suppress Trace",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        560
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "correlation_id",
+              "value": "={{ 'cw-' + String($json.body.account?.id ?? '') + '-' + String($json.body.conversation?.id ?? '') + '-' + String($json.body.id ?? '') }}",
               "type": "string"
             },
             {
-              "name": "summary",
-              "value": "Phase 0 placeholder for Chatwoot inbound echo baseline.",
+              "name": "conversation_id",
+              "value": "={{ String($json.body.conversation?.id ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "inbound_message_id",
+              "value": "={{ String($json.body.id ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "suppress_reason",
+              "value": "={{ ['0', 'incoming'].includes(String($json.body.message_type ?? '').toLowerCase()) ? 'non_customer_sender' : 'non_incoming_message' }}",
+              "type": "string"
+            },
+            {
+              "name": "suppress_source",
+              "value": "sender_guard",
+              "type": "string"
+            },
+            {
+              "name": "message_type_raw",
+              "value": "={{ String($json.body.message_type ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "sender_type_raw",
+              "value": "={{ String($json.body.sender?.type || $json.body.conversation?.meta?.sender?.type || $json.body.conversation?.messages?.[0]?.sender?.type || '') }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wf01_set_reply_trace",
+      "name": "Build Reply Trace",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1640,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "correlation_id",
+              "value": "={{ $('Prepare Dedup Context').item.json.correlation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id",
+              "value": "={{ $('Prepare Dedup Context').item.json.conversation_id }}",
+              "type": "string"
+            },
+            {
+              "name": "inbound_message_id",
+              "value": "={{ $('Prepare Dedup Context').item.json.message_id }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_content",
+              "value": "={{ $('Prepare Phase 3 Reply').item.json.reply_content }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_message_id",
+              "value": "={{ String($json.id || '') }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_status",
+              "value": "={{ String($json.status || $json.code || 'sent') }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_decision",
+              "value": "={{ $('Prepare Phase 3 Reply').item.json.reply_decision }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_next_stage",
+              "value": "={{ $('Prepare Phase 3 Reply').item.json.reply_next_stage }}",
+              "type": "string"
+            },
+            {
+              "name": "dedup_key",
+              "value": "={{ $('Prepare Dedup Context').item.json.dedup_key }}",
               "type": "string"
             }
           ]
@@ -56,11 +862,177 @@
     }
   ],
   "connections": {
-    "Manual Trigger": {
+    "Chatwoot Inbound Webhook": {
       "main": [
         [
           {
-            "node": "Set Placeholder Metadata",
+            "node": "Allow Customer Inbound Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allow Customer Inbound Only": {
+      "main": [
+        [
+          {
+            "node": "Normalize Inbound Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Sender Suppress Trace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Inbound Event": {
+      "main": [
+        [
+          {
+            "node": "Prepare Dedup Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Dedup Context": {
+      "main": [
+        [
+          {
+            "node": "If Dedup Record Exists",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If Dedup Record Does Not Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Dedup Record Exists": {
+      "main": [
+        [
+          {
+            "node": "Prepare Duplicate Suppress Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Duplicate Suppress Record": {
+      "main": [
+        [
+          {
+            "node": "Insert Duplicate Suppress Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Duplicate Suppress Record": {
+      "main": [
+        [
+          {
+            "node": "Build Duplicate Suppress Trace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Dedup Record Does Not Exist": {
+      "main": [
+        [
+          {
+            "node": "Prepare Processed Dedup Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Processed Dedup Record": {
+      "main": [
+        [
+          {
+            "node": "Insert Processed Dedup Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Processed Dedup Record": {
+      "main": [
+        [
+          {
+            "node": "Prepare Phase 3 Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Phase 3 Input": {
+      "main": [
+        [
+          {
+            "node": "Execute Phase 3 LLM Subworkflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Phase 3 LLM Subworkflow": {
+      "main": [
+        [
+          {
+            "node": "Prepare Phase 3 Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Phase 3 Reply": {
+      "main": [
+        [
+          {
+            "node": "Prepare Chatwoot Request Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Chatwoot Request Context": {
+      "main": [
+        [
+          {
+            "node": "Publish Reply to Chatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Reply to Chatwoot": {
+      "main": [
+        [
+          {
+            "node": "Build Reply Trace",
             "type": "main",
             "index": 0
           }
@@ -68,5 +1040,10 @@
       ]
     }
   },
-  "settings": {}
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": true
+  }
 }

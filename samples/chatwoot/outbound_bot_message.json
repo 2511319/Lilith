@@ -1,8 +1,8 @@
 {
-  "conversation_id": "cw-conv-1001",
+  "conversation_id": "1001",
   "message_type": "outgoing",
   "sender_type": "bot",
-  "content": "Здравствуйте. Помогу разобраться с задачей по автоматизации продаж. Расскажите, пожалуйста, что хотите улучшить в первую очередь.",
-  "correlation_id": "corr-2026-03-19-0001",
+  "content": "Здравствуйте. Ваше сообщение получено. Базовый inbound echo контур уже работает.",
+  "correlation_id": "cw-1-1001-9001",
   "created_at": "2026-03-19T09:00:03Z"
 }

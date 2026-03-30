@@ -1,42 +1,122 @@
 # 03. Workflow Phases
 
+## Статус
+
+Supporting-doc для действующей `v2` phase map.
+Этот документ больше не описывает старую линейную deterministic phase-модель как актуальную цель.
+Фазовая карта синхронизирована с [master-spec.md](F:\project\Lilith\master-spec.md).
+
 ## Принцип
 
-Один workflow не должен поглощать всю логику проекта. Система декомпозируется на отдельные читаемые workflow-единицы.
+Фазы `v2` больше не строятся вокруг идеи "добавим ещё один слой в deterministic pipeline".
+Они строятся вокруг controlled build-up agent-first runtime при сохранении внешнего safety shell.
 
-## Фазовая карта
+Ключевое правило:
 
-### WF-01 — Inbound Echo Baseline
-Цель: доказать технический проход `Chatwoot -> n8n -> Chatwoot reply`.
+- сначала сохраняется и замораживается доказанный baseline;
+- затем agentic возможности вводятся слоями;
+- при этом ingress, dedup, handoff gate, lead gateway и observability не теряют прозрачности.
 
-### WF-02 — Dedup and Anti-loop
-Цель: гарантировать `1 inbound -> 1 answer`, отсеять bot/operator/system messages, записать suppress reason.
+## Фазовая карта v2
 
-### WF-03 — LLM Dialog Without RAG
-Цель: получить стабильный RU-only sales-ответ без knowledge layer.
+### WF-00 — Baseline Freeze
 
-### WF-04 — Handoff
-Цель: корректно эскалировать диалог оператору, записать summary и остановить попытку “дожать” кейс ботом.
+Цель: зафиксировать `v1` runtime, traces и evidence как reference baseline.
 
-### WF-05 — Site Snapshot Ingestion
-Цель: получить воспроизводимый knowledge snapshot и загрузить его в Qdrant.
+### WF-01 — Ingress Safety Shell
 
-### WF-06 — RAG Answer Flow
-Цель: выполнять retrieval, определять силу контекста, подмешивать grounded context и безопасно вести себя при weak/empty retrieval.
+Цель: сохранить Chatwoot ingress, normalization, dedup и anti-loop как внешний deterministic shell.
 
-### WF-07 — Sales State Machine
-Цель: управлять стадиями `intro / qualify / propose / cta / lead_capture / handoff / closed`.
+### WF-02 — Agent Core Baseline
 
-### WF-08 — Lead Capture
-Цель: собрать `contact`, `name`, `interest`, `description`, валидировать контакт и сохранить partial progress.
+Цель: поднять minimal `AI Agent` reasoning loop без retrieval, но с explicit decision gate.
 
-### WF-09 — Lead Write
-Цель: сделать идемпотентную запись в Lead Target API и корректно обработать `created / duplicate / failed`.
+### WF-03 — Memory Backbone
 
-### WF-10 — Observability and Pilot Ops
-Цель: обеспечить логи, correlation trace, ключевые метрики и пилотную диагностику.
+Цель: добавить production-viable conversational memory с traceability.
 
-## Правило реализации
+### WF-04 — Handoff Gate
 
-Codex обязан идти по фазам последовательно.  
-Запрещено перепрыгивать через dedup, handoff или observability ради “быстрого MVP”.
+Цель: реализовать explicit handoff path поверх agent recommendation.
+
+### WF-05 — Retrieval Tools
+
+Цель: подключить retrieval как bounded tool capability.
+
+### WF-06 — Grounded Agent Answers
+
+Цель: обеспечить knowledge-driven agent ответы с safe weak/empty behavior.
+
+### WF-07 — Sales Governance Layer
+
+Цель: сохранить явную sales-governance truth поверх agent core.
+
+### WF-08 — Agent-Assisted Lead Capture
+
+Цель: собирать lead conversationally, не передавая агенту final truth ownership.
+
+### WF-09 — Lead Write Gateway
+
+Цель: выполнить explicit idempotent external write через workflow-owned boundary.
+
+### WF-10 — Observability, Evals, Pilot
+
+Цель: обеспечить agent/tool/memory traces, eval loops и pilot-readiness.
+
+## Логика фаз
+
+### Что теперь считается foundation
+
+- baseline freeze;
+- ingress shell;
+- dedup / anti-loop;
+- decision gate;
+- observability.
+
+### Что теперь считается agentic build-up
+
+- agent core;
+- memory;
+- retrieval tools;
+- grounded answers;
+- agent-assisted capture.
+
+### Что всегда остаётся explicit workflow responsibility
+
+- ingress acceptance;
+- suppress logic;
+- handoff publication;
+- lead write;
+- pilot observability shell.
+
+## Правило миграции
+
+Фазы `v1` не выбрасываются, а переосмысляются:
+
+- `Phase 1` и `Phase 2` становятся частью `WF-01 Ingress Safety Shell`;
+- старая `Phase 3` становится историческим bounded LLM baseline;
+- дальнейшие `v2` фазы строятся уже вокруг agent core, а не вокруг isolated LLM-step.
+
+## Правило завершённости фазы
+
+Фаза считается завершённой только если одновременно есть:
+
+- product evidence;
+- observability evidence;
+- safety evidence;
+- migration compatibility evidence.
+
+Нельзя закрывать фазу только по признаку, что агент отвечает "лучше" или "умнее".
+
+## Чего больше нельзя делать
+
+- трактовать `LLM without RAG` как конечную форму AI-layer;
+- считать retrieval просто ещё одним линейным этапом после state;
+- смешивать agent-owned reasoning и workflow-owned external actions;
+- перепрыгивать через observability ради быстрого продвижения runtime.
+
+## Связанные документы
+
+- [master-spec.md](F:\project\Lilith\master-spec.md)
+- [09-acceptance-criteria.md](F:\project\Lilith\docs\09-acceptance-criteria.md)
+- [24-spec-delta-v1-v2.md](F:\project\Lilith\docs\24-spec-delta-v1-v2.md)

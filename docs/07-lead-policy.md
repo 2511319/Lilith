@@ -1,8 +1,26 @@
 # 07. Lead Policy
 
-## Минимальный payload
+## Статус
 
-Обязательные или practically required поля:
+Supporting-doc для `v2 lead capture + lead write gateway`.
+В `v2` агент помогает conversationally собирать lead, но не получает ownership над финальной записью лида.
+
+## Принцип
+
+Lead flow в `v2` делится на два разных слоя:
+
+- `Agent-Assisted Lead Capture`
+- `Lead Write Gateway`
+
+Это нужно, чтобы:
+
+- не смешивать разговорную помощь и внешнюю запись;
+- не отдавать агенту право считать лид "созданным" без gateway;
+- сохранить idempotent и audit-friendly write path.
+
+## Minimal Lead Draft
+
+Практически необходимые поля:
 
 - `conversation_id`
 - `external_user_id`
@@ -14,43 +32,71 @@
 - `dedup_fingerprint`
 - `created_at`
 
-Желательные поля:
+Желательные:
 
 - `name`
 - `last_updated_at`
-
-Практически обязательное поле, которое должно выводиться из канала / inbox / campaign metadata даже если его не вводит пользователь напрямую:
-
 - `source`
 
-## Логика сбора
+`source` должен выводиться из channel/inbox/campaign metadata, если пользователь его не вводит сам.
 
-1. Бот собирает данные только после того, как у пользователя есть понятный контекст следующего шага.
-2. Контакт валидируется минимально, но явно.
-3. Число повторных запросов контакта ограничено.
-4. Partial progress сохраняется в state store.
-5. При неуспехе по контакту выполняется handoff, а не бесконечный цикл вопросов.
+## Lead Capture Rules
 
-## Lead Target API
+1. Агент начинает capture только когда у пользователя уже есть контекст следующего шага.
+2. Контакт запрашивается ограниченно и осмысленно.
+3. Partial progress не теряется.
+4. При неуспехе по контакту не допускается бесконечный цикл вопросов.
+5. Если capture застрял, допустим handoff path.
 
-Первый боевой write выполняется не напрямую в CRM, а в абстракцию Lead Target API.  
-Это снижает связность ядра с конкретной CRM и даёт стабильный write-контур.
+## Lead Truth Boundary
 
-`status` не считается частью канонического `Lead Payload`. Это внутреннее поле состояния lead-processing слоя и/или поле ответа Target API, а не обязательное поле исходного write-payload.
+Agent может:
+
+- выявлять готовность к lead progression;
+- собирать и нормализовать draft fields;
+- предлагать недостающие поля;
+- рекомендовать переход к write.
+
+Agent не может:
+
+- считать lead "записанным" без gateway;
+- выполнять внешний write напрямую;
+- подменять validation workflow-сигналами собственного reasoning.
+
+## Lead Write Gateway
+
+Lead write идёт не напрямую в CRM, а в explicit gateway layer.
+
+Gateway обязан:
+
+- валидировать draft;
+- обеспечивать idempotency;
+- нормализовать `created / duplicate / failed`;
+- возвращать traceable result;
+- не маскировать failure под success.
 
 ## Идемпотентность
 
-Dedup lead write строится как минимум по сочетанию:
+Duplicate-safe поведение строится как минимум по сочетанию:
 
 - контакта;
 - окна времени;
 - интереса / направления;
-- канала и, при необходимости, conversation context.
+- канала;
+- при необходимости conversation context.
 
-Повторная попытка записи не должна плодить новый лид без оснований.
+Повторный write не должен плодить новый лид без оснований.
 
 ## После успешной записи
 
-- пользователю сообщается следующий шаг;
-- оператор получает internal note с `lead_id` и кратким summary;
-- trace записывается в observability слой.
+- пользователь получает понятный следующий шаг;
+- оператор получает internal note / summary при необходимости;
+- observability слой получает traceable external result.
+
+## Признаки дефектного lead flow
+
+- агент объявляет успех до gateway;
+- partial progress теряется;
+- duplicate ведёт к второму лиду;
+- contact loop не останавливается;
+- external write outcome нельзя объяснить по trace.

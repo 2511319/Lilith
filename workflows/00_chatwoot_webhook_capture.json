@@ -1,0 +1,114 @@
+{
+  "name": "Lilith DEV - 00 Chatwoot Raw Capture",
+  "nodes": [
+    {
+      "id": "cw_capture_webhook",
+      "name": "Chatwoot Raw Webhook Capture",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dev/chatwoot/capture-raw",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "84eb3586-d25b-4f3b-970a-7e9f8aefe157"
+    },
+    {
+      "id": "cw_capture_summary",
+      "name": "Build Capture Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "captured_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "name": "event",
+              "value": "={{ String($json.body.event ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "message_id",
+              "value": "={{ String($json.body.id ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "message_type_raw",
+              "value": "={{ String($json.body.message_type ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "created_at_raw",
+              "value": "={{ String($json.body.created_at ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "created_at_js_type",
+              "value": "={{ typeof $json.body.created_at }}",
+              "type": "string"
+            },
+            {
+              "name": "sender_type_raw",
+              "value": "={{ String($json.body.sender?.type ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id_raw",
+              "value": "={{ String($json.body.conversation?.id ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "account_id_raw",
+              "value": "={{ String($json.body.account?.id ?? '') }}",
+              "type": "string"
+            },
+            {
+              "name": "raw_body_json",
+              "value": "={{ JSON.stringify($json.body ?? {}) }}",
+              "type": "string"
+            },
+            {
+              "name": "headers_json",
+              "value": "={{ JSON.stringify($json.headers ?? {}) }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Chatwoot Raw Webhook Capture": {
+      "main": [
+        [
+          {
+            "node": "Build Capture Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": true
+  }
+}

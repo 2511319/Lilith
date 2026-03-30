@@ -1,41 +1,76 @@
-# 06. RAG Policy
+# 06. Retrieval and Grounding Policy
+
+## Статус
+
+Supporting-doc для `v2 retrieval tool path`.
+Этот документ больше не трактует RAG как отдельный линейный pipeline-step после state.
+В `v2` retrieval — bounded capability, которой пользуется agent core под внешним контролем.
 
 ## Цель
 
-RAG нужен не для декоративного “умного” вида, а для grounded-ответов о продуктах, услугах, процессах и фактах компании.
+Retrieval нужен не для декоративной "умности", а для grounded-ответов о продуктах, услугах, процессах и фактах компании.
 
-## Источник знаний
+## Источник знания
 
-Первичным knowledge source считается сайт компании и иные отдельно approved источники.  
-Каждый knowledge run должен быть привязан к `snapshot_id` / `knowledge_version`.
+- первичный knowledge source — approved snapshot-источники компании;
+- каждый knowledge run должен быть привязан к `snapshot_id` / `knowledge_version`;
+- retrieval без понятной knowledge-versioning дисциплины не считается надёжным.
 
-## Базовый ingestion pipeline
+## Retrieval model in v2
 
-1. Снять snapshot сайта.
-2. Очистить мусорные и служебные страницы.
-3. Нормализовать URL и метаданные.
-4. Разбить контент на чанки.
-5. Построить embedding.
-6. Выполнить upsert в Qdrant.
-7. Сохранить trace версии знаний.
+### Что изменилось
 
-## Retrieval policy
+- в `v1` retrieval был отдельным deterministic этапом;
+- в `v2` retrieval становится bounded tool capability для agent core;
+- но grounded truth всё равно остаётся explicit и наблюдаемой.
 
-- top-k retrieval обязателен в knowledge-driven вопросах;
-- retrieval должен возвращать не только контент, но и source trace;
-- LLM должен видеть только явно отобранный контекст, а не неуправляемый dump;
-- при weak/empty retrieval бот обязан ограничить уверенность и, при необходимости, инициировать handoff.
+### Что это значит practically
+
+- retrieval может вызываться агентом по необходимости;
+- tool invocation должен быть traceable;
+- quality результата должен быть нормализован;
+- слабый retrieval не даёт права отвечать как будто знание подтверждено.
+
+## Retrieval Rules
+
+1. Retrieval допустим только из approved knowledge sources.
+2. Tool invocation должен быть отражён в trace.
+3. Agent не должен получать uncontrolled dump вместо bounded context.
+4. Retrieval result должен иметь quality signal как минимум:
+   - `strong`
+   - `weak`
+   - `empty`
+5. При `weak` или `empty` нельзя симулировать grounded knowledge.
+
+## Safe behavior
+
+### strong
+
+- ответ может опираться на retrieved context;
+- trace должен показывать, что grounded path реально использован.
+
+### weak
+
+- ответ ограничивает уверенность;
+- допускается soft limitation;
+- при критичности кейса возможен handoff recommendation.
+
+### empty
+
+- нельзя говорить как будто система "знает";
+- нужен safe limitation, уточнение или handoff path.
 
 ## Запреты
 
-- нельзя отвечать как будто знание есть, если retrieval пустой;
-- нельзя смешивать неподтверждённые факты и grounded контекст;
-- нельзя использовать “текущий сайт” как неявную истину без versioned snapshot.
+- нельзя отвечать как будто знание подтверждено, если retrieval пустой;
+- нельзя смешивать неподтверждённую фантазию с grounded context;
+- нельзя использовать "текущий сайт" как неявную истину без versioned snapshot;
+- нельзя скрывать факт использования retrieval tool в observability.
 
-## Минимальные quality flags
+## Acceptance-oriented признаки правильного retrieval
 
-- `strong` — есть достаточный релевантный контекст;
-- `weak` — контекст частичный или сомнительный;
-- `empty` — контекста нет.
-
-Эти флаги должны влиять на ответ и на решение о handoff.
+- retrieval tool path воспроизводим;
+- quality signal виден;
+- grounded answer path доказан evidence;
+- weak/empty retrieval не приводит к галлюцинациям;
+- trace показывает, что именно было использовано и в каком качестве.
